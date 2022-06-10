@@ -5,14 +5,11 @@
 #include <../opengl/glew.h>
 #include <../opengl/freeglut.h>
 
-//#include <../opengl/glew.h>
-//#include <../opengl/freeglut.h>
-
 #include "Particle.h"
 
 #include "kernel.cuh"
 
-#define MAX_PARTICLES 30
+#define MAX_PARTICLES 5000
 
 /*
 class SystemParams {

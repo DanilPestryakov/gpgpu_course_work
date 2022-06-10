@@ -6,7 +6,7 @@
 
 double Time = 200000;
 double CurrTime = 0;
-double dt = 0.3;
+double dt = 0.5;
 
 Geometry Geom;
 
@@ -19,13 +19,13 @@ void setup() {
 	PlayingSystem = new ParticleSystem();
 }
 
-
+/*
 std::ofstream OutputFile; //output unit
 char OutputFileName[] = "track1.txt";
 
 std::ofstream OutputFile_2; //output unit
 char OutputFileName_2[] = "track2.txt";
-
+*/
 
 void DisplayScene() {
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -122,12 +122,12 @@ void DisplayScene() {
 		//// deactivate vertex arrays after drawing
 		glDisableClientState(GL_VERTEX_ARRAY);
 
-//		PlayingSystem.UpdateSystem(Geom);
-		PlayingSystem->UpdateSystemSingle(Geom);
+		PlayingSystem->UpdateSystem(Geom);
+//		PlayingSystem->UpdateSystemSingle(Geom);
 
-		std::cout << PlayingSystem->GetBasketCounter() << " particles in basket\n";
-		if (PlayingSystem->GetBasketCounter() >= PlayingSystem->GetParticlesInBasketNeeded())
-			std::cout << "Victory!\n";
+//		std::cout << PlayingSystem->GetBasketCounter() << " particles in basket\n";
+//		if (PlayingSystem->GetBasketCounter() >= PlayingSystem->GetParticlesInBasketNeeded())
+//			std::cout << "Victory!\n";
 
 		PlayingSystem->GetSystem(vertices);
 		glColor3f(0.0, 1.0, 0.0);
@@ -148,9 +148,10 @@ void DisplayScene() {
 		glFlush();
 		//		std::cout << "( " << vertices[0] << ", " << vertices[1] << " )\n";
 		//		std::cout << "( " << vertices[2*MAX_PARTICLES] << ", " << vertices[2*MAX_PARTICLES + 1] << " )\n";
+		/*
 		OutputFile << std::setprecision(8) << std::fixed << vertices[0] << "\t" << std::setprecision(8) << std::fixed << vertices[1] << "\n";
 		OutputFile_2 << std::setprecision(8) << std::fixed << vertices[2 * MAX_PARTICLES] << "\t" << std::setprecision(8) << std::fixed << vertices[2 * MAX_PARTICLES + 1] << "\n";
-
+		*/
 		//		std::cout << "Color indexes type1: ( " << PlayingSystem.GetColor()[0] << ", " << PlayingSystem.GetColor()[1] << ", " << PlayingSystem.GetColor()[2] << " )\n";
 
 		CurrTime += dt;
@@ -171,7 +172,7 @@ void myinit() {
 	gluOrtho2D(0.0, 800.0, 600.0, 0.0);
 
 	setup();
-	PlayingSystem->SetSystem(300, 100, 500, 100, dt, 10000, 400, 20);	
+	PlayingSystem->SetSystem(300, 100, 500, 100, dt, 10000, 400, 100);	
 
 	// Initialize particle system
 	// InitSystem(Vx_magnitude, Vy_magnitude, Red_1, Green_1, Blue_1, LifeTime_1, Red_2, Green_2, Blue_2, LifeTime_2)
@@ -180,10 +181,10 @@ void myinit() {
 }
 
 int main(int argc, char** argv) {
-
+	/*
 	OutputFile.open(OutputFileName);
 	OutputFile_2.open(OutputFileName_2);
-
+	*/
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
 	glutInitWindowSize(800, 600);

@@ -47,7 +47,7 @@ ParticleSystem::ParticleSystem() {
 	dt = 0;
 	Life = 0;
 	BasketLevel = 0;
-	ParticlesInBasketNeeded = 0;
+	ParticlesInBasketNeeded = 100;
 	BasketCounter = 0;
 }
 
@@ -102,95 +102,30 @@ void ParticleSystem::InitSystem(double Vx_mag, double Vy_mag, float r_1_inp, flo
 	
 	// 1st-type particles
 	for (int i = 0; i < MAX_PARTICLES; ++i)
-		particles[i] = Particle(SourceCoordX_1, SourceCoordY_1, Vx_mag*0.01 * (rand() % 101), Vy_mag*0.01 * (rand() % 101), Red_1, Green_1, Blue_1, Life_1_inp);
+		particles[i] = Particle(SourceCoordX_1, SourceCoordY_1, Vx_mag * (0.01 * (rand() % 101) - 0.5), Vy_mag * (0.01 * (rand() % 101) - 0.5), Red_1, Green_1, Blue_1, Life_1_inp);
 
 	// 2nd-type particles
 	for (int i = 0; i < MAX_PARTICLES; ++i)
-		particles_type2[i] = Particle(SourceCoordX_2, SourceCoordY_2, Vx_mag * 0.01 * (rand() % 101), Vy_mag * 0.01 * (rand() % 101), Red_2, Green_2, Blue_2, Life_2_inp);
+		particles_type2[i] = Particle(SourceCoordX_2, SourceCoordY_2, Vx_mag * (0.01 * (rand() % 101) - 0.5), Vy_mag * (0.01 * (rand() % 101) - 0.5), Red_2, Green_2, Blue_2, Life_2_inp);
 }
 
 void ParticleSystem::UpdateSystem(Geometry Geom) {
 
-	int i, j;
-	double NewXCoord, NewYCoord, NewVX, NewVY;
-	double NewXCoord_2, NewYCoord_2, NewVX_2, NewVY_2;
-	double tempVx, tempVy;
-
-/*
-	// Checking wall interaction for 1st-type particles
-	for (i = 0; i < MAX_PARTICLES; ++i) {
-
-		NewXCoord = particles[i].GetParams().x + particles[i].GetParams().Vx * dt;
-		NewYCoord = particles[i].GetParams().y + particles[i].GetParams().Vy * dt;
-		NewVX = particles[i].GetParams().Vx;
-		NewVY = particles[i].GetParams().Vy;
-
-		particles[i].UpdateParticle(NewXCoord, NewYCoord, Geom, dt);
-
-		if (particles[i].GetParams().Life <= 0)
-			particles[i].UpdateLifeStatus(SourceCoordX_1, SourceCoordY_1, 0.01 * (rand() % 101), 0.01 * (rand() % 101), 0, 0.01 * (rand() % 101), 0, Life);
-			
-		if (particles[i].GetParams().y > BasketLevel) {
-			BasketCounter += 1;
-			particles[i].UpdateLifeStatus(SourceCoordX_1, SourceCoordY_1, 0.01 * (rand() % 101), 0.01 * (rand() % 101), 0, 0.01 * (rand() % 101), 0, Life);
-		}
-
-	}
-
-
-	Calc(particles, particles_type2,  Geom, MAX_PARTICLES);
-
-	// Checking wall interaction for 2nd-type particles
-	for (i = 0; i < MAX_PARTICLES; ++i) {
-
-		NewXCoord_2 = particles_type2[i].GetParams().x + particles_type2[i].GetParams().Vx * dt;
-		NewYCoord_2 = particles_type2[i].GetParams().y + particles_type2[i].GetParams().Vy * dt;
-		NewVX_2 = particles_type2[i].GetParams().Vx;
-		NewVY_2 = particles_type2[i].GetParams().Vy;
-
-		particles_type2[i].UpdateParticle(NewXCoord_2, NewYCoord_2, Geom, dt);
-
-		if (particles_type2[i].GetParams().Life <= 0)
-			particles_type2[i].UpdateLifeStatus(SourceCoordX_2, SourceCoordY_2, 0.01 * (rand() % 101), 0.01 * (rand() % 101), 0, 0, 0.01 * (rand() % 101), Life);
-
-		if (particles_type2[i].GetParams().y > BasketLevel) {
-			BasketCounter += 1;
-			particles_type2[i].UpdateLifeStatus(SourceCoordX_2, SourceCoordY_2, 0.01 * (rand() % 101), 0.01 * (rand() % 101), 0, 0, 0.01 * (rand() % 101), Life);
-		}
-			
-	}
-*/
 	Calc(particles, particles_type2, Geom, MAX_PARTICLES);
 	Calc2(particles, particles_type2, MAX_PARTICLES);
-/*
-	// Checking particle-particle interaction
-	for (i = 0; i < MAX_PARTICLES; ++i) {
+	BasketCounter = Calc3(particles, particles_type2, MAX_PARTICLES);
 
-		for (j = 0; j < MAX_PARTICLES; ++j) {
-
-			ParticlesDist = RDistance(particles[i].GetParams().x, particles_type2[j].GetParams().x, particles[i].GetParams().y, particles_type2[j].GetParams().y);
-
-			if (ParticlesDist <= 14.0) {
-
-				tempVx = particles[i].GetParams().Vx;
-				tempVy = particles[i].GetParams().Vy;
-
-				particles[i].SetVelocity(particles_type2[j].GetParams().Vx, particles_type2[j].GetParams().Vy);
-				particles_type2[j].SetVelocity(tempVx, tempVy);
-
-			}
-		}
-	}
-*/
-
+	printf("Particles in basket = %d\n", BasketCounter);
+	if (BasketCounter >= ParticlesInBasketNeeded)
+		printf("Victory!\n");
 }
 
 
 void ParticleSystem::UpdateSystemSingle(Geometry Geom) {
 
 	int i, j;
-	double NewXCoord, NewYCoord, NewVX, NewVY;
-	double NewXCoord_2, NewYCoord_2, NewVX_2, NewVY_2;
+	double NewXCoord, NewYCoord;
+	double NewXCoord_2, NewYCoord_2;
 	double tempVx, tempVy;
 
 	
@@ -199,17 +134,15 @@ void ParticleSystem::UpdateSystemSingle(Geometry Geom) {
 
 			NewXCoord = particles[i].GetParams().x + particles[i].GetParams().Vx * dt;
 			NewYCoord = particles[i].GetParams().y + particles[i].GetParams().Vy * dt;
-			NewVX = particles[i].GetParams().Vx;
-			NewVY = particles[i].GetParams().Vy;
 
 			particles[i].UpdateParticle(NewXCoord, NewYCoord, Geom, dt);
 
 			if (particles[i].GetParams().Life <= 0)
-				particles[i].UpdateLifeStatus(SourceCoordX_1, SourceCoordY_1, 0.01 * (rand() % 101), 0.01 * (rand() % 101), 0, 0.01 * (rand() % 101), 0, Life);
+				particles[i].UpdateLifeStatus(SourceCoordX_1, SourceCoordY_1, 0.01 * (rand() % 101) - 0.5, 0.01 * (rand() % 101) - 0.5, 0, 1.0, 0, Life);
 
 			if (particles[i].GetParams().y > BasketLevel) {
 				BasketCounter += 1;
-				particles[i].UpdateLifeStatus(SourceCoordX_1, SourceCoordY_1, 0.01 * (rand() % 101), 0.01 * (rand() % 101), 0, 0.01 * (rand() % 101), 0, Life);
+				particles[i].UpdateLifeStatus(SourceCoordX_1, SourceCoordY_1, 0.01 * (rand() % 101) - 0.5, 0.01 * (rand() % 101) - 0.5, 0, 1.0, 0, Life);
 			}
 
 		}
@@ -219,17 +152,15 @@ void ParticleSystem::UpdateSystemSingle(Geometry Geom) {
 
 			NewXCoord_2 = particles_type2[i].GetParams().x + particles_type2[i].GetParams().Vx * dt;
 			NewYCoord_2 = particles_type2[i].GetParams().y + particles_type2[i].GetParams().Vy * dt;
-			NewVX_2 = particles_type2[i].GetParams().Vx;
-			NewVY_2 = particles_type2[i].GetParams().Vy;
 
 			particles_type2[i].UpdateParticle(NewXCoord_2, NewYCoord_2, Geom, dt);
 
 			if (particles_type2[i].GetParams().Life <= 0)
-				particles_type2[i].UpdateLifeStatus(SourceCoordX_2, SourceCoordY_2, 0.01 * (rand() % 101), 0.01 * (rand() % 101), 0, 0, 0.01 * (rand() % 101), Life);
+				particles_type2[i].UpdateLifeStatus(SourceCoordX_2, SourceCoordY_2, 0.01 * (rand() % 101) - 0.5, 0.01 * (rand() % 101) - 0.5, 0, 0, 1.0, Life);
 
 			if (particles_type2[i].GetParams().y > BasketLevel) {
 				BasketCounter += 1;
-				particles_type2[i].UpdateLifeStatus(SourceCoordX_2, SourceCoordY_2, 0.01 * (rand() % 101), 0.01 * (rand() % 101), 0, 0, 0.01 * (rand() % 101), Life);
+				particles_type2[i].UpdateLifeStatus(SourceCoordX_2, SourceCoordY_2, 0.01 * (rand() % 101) - 0.5, 0.01 * (rand() % 101) - 0.5, 0, 0, 1.0, Life);
 			}
 
 		}

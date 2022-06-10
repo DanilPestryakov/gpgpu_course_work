@@ -77,6 +77,7 @@ ParticleParams::ParticleParams() {
 	Vx = 0;
 	Vy = 0;
 	Life = 0;
+	InBasket = 0;
 }
 
 ParticleParams::ParticleParams(const ParticleParams& c) {
@@ -85,6 +86,7 @@ ParticleParams::ParticleParams(const ParticleParams& c) {
 	Vx = c.Vx;
 	Vy = c.Vy;
 	Life = c.Life;
+	InBasket = c.InBasket;
 }
 
 ParticleParams::~ParticleParams() {
@@ -100,6 +102,7 @@ Particle::Particle() {
 	g = 0;
 	b = 0;
 	Lifetime = 0;
+	InBasket = 0;
 }
 
 
@@ -139,7 +142,6 @@ void Particle::UpdateParticle(double x_m1, double y_m1, Geometry Geom_inp, doubl
 	v_m = VY;
 	int counter = 0;
 	int Icr1 = 0;
-	int i = 0;
 	double eps = 1e-6;
 
 
@@ -193,12 +195,21 @@ ParticleParams Particle::GetParams() {
 	params.Vx = VX;
 	params.Vy = VY;
 	params.Life = Lifetime;
+	params.InBasket = InBasket;
 	return params;
 }
 
 void Particle::SetVelocity(double VX_inp, double VY_inp) {
 	VX = VX_inp;
 	VY = VY_inp;
+}
+
+int Particle::GetInBasket() {
+	return InBasket;
+}
+
+void Particle::SetInBasket(int b) {
+	InBasket = b;
 }
 
 Particle::~Particle() {

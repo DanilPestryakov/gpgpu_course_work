@@ -15,36 +15,82 @@
 
 #include "kernel.cuh"
 
+
 //#include "ParticleSystem.h"
 #include "Particle.h"
 #include "Functions.h"
+#include <algorithm>
 
+
+__inline__ __device__ int warpReduceSum(int val)
+{
+	for (int offset = warpSize / 2; offset > 0; offset /= 2)
+		val += __shfl_down_sync(warpSize - 1, val, offset);
+
+	return val;
+}
+
+__inline__ __device__ int blockReduceSum(int val)
+{
+	static __shared__ int shared[32];
+	int lane = threadIdx.x % warpSize;
+	int wid = threadIdx.x / warpSize;
+
+	val = warpReduceSum(val);
+
+	// write reduced value to shared memory
+	if (lane == 0)
+		shared[wid] = val;
+
+	__syncthreads();
+
+	// ensure we only grab a value from shared memory 
+	// if that warp existed
+	val = (threadIdx.x < blockDim.x / warpSize) ? shared[lane] : int(0);
+
+	if (wid == 0)
+		val = warpReduceSum(val);
+
+	return val;
+}
+
+__global__ void deviceReduceKernel(int* in, int* out, int n)
+{
+	int sum = 0;
+
+	//reduce multiple elements per thread
+	for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < n; i += blockDim.x * gridDim.x)
+		sum += in[i];
+
+	sum = blockReduceSum(sum);
+
+	if (threadIdx.x == 0)
+		out[blockIdx.x] = sum;
+}
+
+void deviceReduce(int* in, int* out, int n)
+{
+	deviceReduceKernel << <BLOCKS_NUMBER, THREADS_NUMBER >> > (in, out, n);
+	deviceReduceKernel << <1, THREADS_NUMBER >> > (out, out, BLOCKS_NUMBER);
+}
 
 // Kernel Definition
 __global__ void iter(Particle* p1, Particle* p2, Geometry g, int n)
 {
-	double NewXCoord, NewYCoord, NewVX, NewVY;
+	double NewXCoord, NewYCoord;
 	double SourceCoordX_1 = 300;
 	double SourceCoordY_1 = 100;
 	double SourceCoordX_2 = 500;
 	double SourceCoordY_2 = 100;
 	double BasketLevel = 400;
+	double BasketBegin = 350;
+	double BasketWidth = 100;
 	double Life = 10000;
-	double dt = 0.3;
-	int BasketCounter = 0;
+	double dt = 0.5;
 
 	ParticleParams params1;
 	ParticleParams params2;
-
-	curandState_t state;
-	curand_init(0, 0, 0, &state);
-
-	double numb;
-	int RANGE = 1;
-	int MAX = 101;
-
-//	numb = curand_uniform(&state);
-//	printf("%d\n", numb);
+	int b;
 
 	int i = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -53,38 +99,38 @@ __global__ void iter(Particle* p1, Particle* p2, Geometry g, int n)
 		params1 = p1[i].GetParams();
 		NewXCoord = params1.x + params1.Vx * dt;
 		NewYCoord = params1.y + params1.Vy * dt;
-		NewVX = params1.Vx;
-		NewVY = params1.Vy;
 
 		p1[i].UpdateParticle(NewXCoord, NewYCoord, g, dt);
-		if (params1.Life <= 0) {
-			numb = (double)((curand_uniform(&state)*(RANGE+1)));		
+		if (params1.Life <= 0) {	
 			p1[i].UpdateLifeStatus(SourceCoordX_1, SourceCoordY_1, 0.1, 0.1, 0, 1, 0, Life);
 		}
 
 		if (params1.y > BasketLevel) {
-			BasketCounter += 1;
-			numb = (double)((curand_uniform(&state) * (RANGE + 1)));
 			p1[i].UpdateLifeStatus(SourceCoordX_1, SourceCoordY_1, 0.1, 0.1, 0, 1, 0, Life);
+		}
+
+		if (params1.y >= BasketLevel && params1.x >= BasketBegin && params1.x <= BasketBegin + BasketWidth) {
+			b = params1.InBasket + 1;
+			p1[i].SetInBasket(b);
 		}
 
 		params2 = p2[i].GetParams();
 		NewXCoord = params2.x + params2.Vx * dt;
 		NewYCoord = params2.y + params2.Vy * dt;
-		NewVX = params2.Vx;
-		NewVY = params2.Vy;
 
 		p2[i].UpdateParticle(NewXCoord, NewYCoord, g, dt);
 
 		if (params2.Life <= 0) {
-			numb = (double)((curand_uniform(&state) * (RANGE + 1)));
 			p2[i].UpdateLifeStatus(SourceCoordX_2, SourceCoordY_2, 0.1, 0.1, 0, 0, 1, Life);
 		}
 
 		if (params2.y > BasketLevel) {
-			BasketCounter += 1;
-			numb = (double)((curand_uniform(&state) * (RANGE + 1)));
 			p2[i].UpdateLifeStatus(SourceCoordX_2, SourceCoordY_2, 0.1, 0.1, 0, 0, 1, Life);
+		}
+
+		if (params2.y > BasketLevel && params2.x >= BasketBegin && params2.x <= BasketBegin + BasketWidth) {
+			b = params2.InBasket + 1;
+			p2[i].SetInBasket(b);
 		}
 
 	}
@@ -122,6 +168,7 @@ __global__ void iter2(Particle* p1, Particle* p2, int n) {
 
 void Calc(Particle* h_a, Particle* h_b, Geometry g, int n) {
 
+
 	// Allocate host memory
 	// Initialize host array
 
@@ -151,10 +198,10 @@ void Calc(Particle* h_a, Particle* h_b, Geometry g, int n) {
 
 	cudaFree(d_a);
 	cudaFree(d_b);
-
 }
 
 void Calc2(Particle* h_a, Particle* h_b, int n) {
+
 	// Allocate host memory
 // Initialize host array
 
@@ -186,4 +233,36 @@ void Calc2(Particle* h_a, Particle* h_b, int n) {
 
 	cudaFree(d_a);
 	cudaFree(d_b);
+}
+
+int Calc3(Particle* h_a, Particle* h_b, int n) {
+
+	// Allocate host memory
+// Initialize host array
+
+// Allocate arrays in Device memory
+	int counter = 0;
+	int* a;
+	int* b;
+
+	// allocate memory
+	cudaMallocManaged(&a, 2 * n * sizeof(int));
+	cudaMallocManaged(&b, 2 * n * sizeof(int) / THREADS_NUMBER);	// we need space for every block, ie n/512 elements
+
+		// fill it with data
+	for (int i = 0; i < n; i++) {
+		a[i] = h_a[i].GetInBasket();
+		a[i + n] = h_b[i].GetInBasket();
+	}
+
+	deviceReduce(a, b, 2*n);
+
+	cudaDeviceSynchronize();
+
+	counter = b[0];
+
+	cudaFree(a);
+	cudaFree(b);
+
+	return counter;
 }
